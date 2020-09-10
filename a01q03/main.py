@@ -25,7 +25,7 @@ def find_target(m, target = ' '):
   target_val = None
   for (i, v) in enumerate(m):
     try:
-      target_val = v.index(' ')
+      target_val = v.index(target)
       row = i
     except ValueError:
       None
