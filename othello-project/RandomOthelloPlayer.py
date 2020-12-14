@@ -4,6 +4,11 @@
 #   a move. 
 
 import random
+import resource
+
+def gettime():
+    rs = resource.getrusage(resource.RUSAGE_SELF)
+    return rs[0] + rs[1]
 
 class RandomOthelloPlayer:
     def __init__(self, board_size, board_state, turn, time_left=9999,
@@ -26,7 +31,7 @@ class RandomOthelloPlayer:
         return (move[0] >= 0 and move[0] < self.board_size and
                 move[1] >= 0 and move[1] < self.board_size)
     
-    def check_valid_move(self, move, player, board_state):
+    def check_valid_move(self, move, player):
         # @param move : [row, col]
         # @param player : 'W' or 'B'
 
@@ -34,7 +39,7 @@ class RandomOthelloPlayer:
         # the above represents moves in the following order respectively:
         #   E, SE, S, SW, W, NW, N, NE
         
-        if board_state[move[0]][move[1]] != ' ' or not self.move_on_board(move):
+        if self.board_state[move[0]][move[1]] != ' ' or not self.move_on_board(move):
             return False
 
         if player == 'B':
@@ -48,7 +53,7 @@ class RandomOthelloPlayer:
             x += x_dir
             y += y_dir
             
-            if self.move_on_board([x, y]) and board_state[x][y] == other_player:
+            if self.move_on_board([x, y]) and self.board_state[x][y] == other_player:
                 # There is a piece belonging to the other player
                 # next to ours
                 x += x_dir
@@ -56,7 +61,7 @@ class RandomOthelloPlayer:
                 if not self.move_on_board([x, y]):
                     continue
                 
-                while board[x][y] == other_player:
+                while self.board_state[x][y] == other_player:
                     x += x_dir
                     y += y_dir
                     if not self.move_on_board([x, y]):
@@ -65,7 +70,7 @@ class RandomOthelloPlayer:
                 if not self.move_on_board([x, y]):
                     continue
 
-                if board_state[x][y] == player:
+                if self.board_state[x][y] == player:
                     # There are pieces to flip. Reverse until we hit move,
                     # adding each to spaces_to_flip
                     while True:
@@ -81,12 +86,12 @@ class RandomOthelloPlayer:
         return spaces_to_flip
 
     
-    def make_random_move(self, player, board):
-        n = len(board[0])
+    def make_random_move(self, player):
+        n = len(self.board_state[0])
         x_choice = random.randrange(n)
         y_choice = random.randrange(n)
         
-        move = self.check_valid_move([x_choice, y_choice], player, board)
+        move = self.check_valid_move([x_choice, y_choice], player)
         bad_moves = []
         while not move:            
             bad_moves.append([x_choice, y_choice])
@@ -96,7 +101,7 @@ class RandomOthelloPlayer:
             while ([x_choice, y_choice] in bad_moves):
                 x_choice = random.randrange(n)
                 y_choice = random.randrange(n)
-            move = self.check_valid_move([x_choice, y_choice], player, board)
+            move = self.check_valid_move([x_choice, y_choice], player)
         move.append([x_choice, y_choice])
         return move
     
@@ -121,17 +126,12 @@ def is_game_over(board, players, rand_bot):
     # returns true if both player_1 and player_2 cannot make a play
     player_1 = players[0]
     player_2 = players[1]
-    if not (rand_bot.make_random_move(player_1, board) and
-            rand_bot.make_random_move(player_2, board)):
+    if not (rand_bot.make_random_move(player_1) and
+            rand_bot.make_random_move(player_2)):
         return True
     return False
 
-if __name__ == '__main__':
-    n = input("Give me n: ")
-    while n % 2 != 0:
-        print "ERROR: Give me an even n: "
-        n = input()
-
+def run_game():
     board = []
 
     ###############################################
@@ -164,9 +164,11 @@ if __name__ == '__main__':
         # t = raw_input("Y to continue, Q to quit: ")
         # if t == 'Q':
         #     break
+
+        t0 = gettime()
         
         if player == player_1:
-            move = rand_bot.make_random_move(player_1, board)
+            move = rand_bot.make_random_move(player_1)
             if not move:
                 player = player_2
                 continue
@@ -175,7 +177,7 @@ if __name__ == '__main__':
                 for val in move:
                     board[val[0]][val[1]] = player
         else:
-            move = rand_bot.make_random_move(player_2, board)
+            move = rand_bot.make_random_move(player_2)
             if not move:
                 player = player_1
                 continue
@@ -184,6 +186,9 @@ if __name__ == '__main__':
                     board[val[0]][val[1]] = player
         player = player_2 if player == player_1 else player_1
         pretty_print_board(board)
+
+        t1 = gettime()
+        print "Round time:", t1 - t0
     ###############################################
 
     white_total = 0
@@ -204,3 +209,21 @@ if __name__ == '__main__':
         print "~~~~~ BLACK IS THE WINNER ~~~~~"
     else:
         print "~~~~~~~~~ IT IS A TIE ~~~~~~~~~"
+
+    return t1 - t0
+
+if __name__ == '__main__':
+    n = input("Give me n: ")
+    while n % 2 != 0:
+        print "ERROR: Give me an even n: "
+        n = input()
+
+    times = []
+    for i in range(100):
+        times.append(run_game())
+
+    avg_time = 0.0
+    for val in times:
+        avg_time += val
+
+    print "Average runtime over 100 games: ", avg_time / 100
