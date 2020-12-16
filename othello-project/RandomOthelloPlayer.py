@@ -27,6 +27,10 @@ class RandomOthelloPlayer:
         self.time_left = time_left
         self.opponent_time_left = opponent_time_left
 
+    def update_board(self, board_state):
+        self.board_state = board_state
+        return 
+
     def move_on_board(self, move):
         return (move[0] >= 0 and move[0] < self.board_size and
                 move[1] >= 0 and move[1] < self.board_size)
@@ -96,14 +100,15 @@ class RandomOthelloPlayer:
         while not move:            
             bad_moves.append([x_choice, y_choice])
             if len(bad_moves) >= n * n:
-                return False
+                return None
 
             while ([x_choice, y_choice] in bad_moves):
                 x_choice = random.randrange(n)
                 y_choice = random.randrange(n)
             move = self.check_valid_move([x_choice, y_choice], player)
         move.append([x_choice, y_choice])
-        return move
+        # return move
+        return [x_choice, y_choice]
     
 
 def pretty_print_board(board):
