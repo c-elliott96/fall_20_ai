@@ -9,20 +9,25 @@ def gettime():
     return rs[0] + rs[1]
 
 def print_board(board):
-    n = len(board[0])
-    board_string = ''
-    dashes = ''
-    for i in range(2 * n + 1):
-        dashes += '-'
+	n = len(board[0])
+	board_string = ''
+	dashes = ''
+	for i in range(2 * n + 1):
+		dashes += '-'
 
-    for row in board:
-        board_string += dashes + '\n'
-        for col in row:
-            board_string += '|'
-            board_string += col
-        board_string += '|' + '\n'
-    board_string += dashes + '\n'
-    print board_string 
+	for row in board:
+		board_string += dashes + '\n'
+		for col in row:
+			board_string += '|'
+			board_string += col
+		board_string += '|' + '\n'
+	board_string += dashes + '\n'
+	print board_string 
+
+def print_utility_board(util):
+	for row in util:
+		print row
+
 
 class Minimax:
 	def __init__(self, board_size, board_state, turn, time_left=100000, opponent_time_left=100000):
@@ -32,9 +37,6 @@ class Minimax:
 		self.time_left = time_left
 		self.opponent_time_left = opponent_time_left
 
-	# def move_on_board(self, move):
-	# 	return (move[0] >= 0 and move[0] < self.board_size and
-  #               move[1] >= 0 and move[1] < self.board_size)
 
 	def move_on_board(self, move, board_size):
 		return (move[0] >= 0 and move[0] < board_size and 
@@ -117,41 +119,64 @@ class Minimax:
 			other_player = 'W'
 		else:
 			other_player = 'B'
-
-		# print "-EVALUATING:-"
-		# print_board(board_state)
-
 		for row in board_state:
 			for col in row:
 				if col == turn:
 					my_piece_count += 1
 				if col == other_player:
 					opponent_piece_count += 1
-				
-		# print "Evaluation: ", (my_piece_count - opponent_piece_count)
 		return my_piece_count - opponent_piece_count
+
+	
+	def utility_square(self, board_state, turn):
+		n = len(board_state[0])
+		CORNER = 50
+		WALL = -10
+		INNER = -20
+		OTHER = 0
+
+		utility_board = []
+		for row in range(0, n):
+			utility_board.append([ 0 for col in range(0, n) ])
+		# build square board
+		for i in range(n):
+			for j in range(n):
+				# corner pieces
+				if ((i == 0 and j == 0) or (i == n - 1 and j == 0) or 
+					(i == n - 1 and j == n - 1) or (i == 0 and j == n - 1)):
+					utility_board[i][j] = CORNER
+
+				elif ((i == 1 and j == 0) or (i == 0 and j == 1) or 
+								 (i == n - 2 and j == 0) or (i == n - 1 and j == 1) or 
+								 (i == n - 1 and j == n - 2) or (i == n - 2 and j == n - 1) or 
+								 (i == 0 and j == n - 2) or (i == 1 and j == n - 1)):
+					utility_board[i][j] = WALL
+
+				elif ((i == 1 and j == 1) or (i == 1 and j == n - 2) or 
+								 (i == n - 2 and j == 2) or (i == n - 2 and j == n - 2)):
+					utility_board[i][j] = INNER
+
+				else:
+					utility_board[i][j] = OTHER
+
+		sum = 0
+		for i in range(n):
+			for j in range(n):
+				if board_state[i][j] == turn:
+					sum += utility_board[i][j]
+
+		return sum
 
 
 	def minimax(self, board_state, move, depth, alpha, beta, 
 							maximizingPlayer, turn):
-		# print "Depth: ", depth
-		# print "Call count: ", call_count
 		if depth == 0 or not self.get_valid_moves(board_state, turn):
 			v = self.eval_by_num_pieces(board_state, turn)
-			print "Return evaluation value of ", v
 			return v
 
 		if maximizingPlayer:
 			maxEval = -100000
-
-			# print_board(board_state)
-			# print "result of get_valid_moves ... "
-			# print self.get_valid_moves(board_state, turn='B')
-
 			for child in self.get_valid_moves(board_state, turn='B'):
-
-				# print "child value in top ... ", child
-
 				new_board_state = self.result(child, board_state, 'B')
 				sub_eval = self.minimax(new_board_state, child, depth - 1, 
 					alpha=None, beta=None, maximizingPlayer=False, turn='W')
@@ -160,19 +185,59 @@ class Minimax:
 
 		else:
 			minEval = 100000
-
-			# print_board(board_state)
-			# print "result of get_valid_moves ... "
-			# print self.get_valid_moves(board_state, turn='W')
-
 			for child in self.get_valid_moves(board_state, turn='W'):
-
-				# print "child value on bottom ... ", child
-
 				new_board_state = self.result(child, board_state, 'W')
 				sub_eval = self.minimax(new_board_state, child, depth - 1, 
 					alpha=None, beta=None, maximizingPlayer=True, turn='B')
 				minEval = min(minEval, sub_eval)
+			return minEval
+
+	
+	def minimax_ab(self, board_state, move, depth, alpha, beta, 
+								 maximizingPlayer, turn):
+
+		# print "Depth: ", depth
+
+		if depth == 0 or not self.get_valid_moves(board_state, turn):
+			# v = self.eval_by_num_pieces(board_state, turn)
+
+			# print "Exiting recursion ... evaluating: "
+			# print_board(board_state)
+
+			v = self.utility_square(board_state, turn)
+
+			# print "Which has an evaluation of: ", v
+
+			return v
+
+		if maximizingPlayer:
+			maxEval = -100000
+
+			# print "MAXIMIZING :"
+			# print_board(board_state)
+
+			for child in self.get_valid_moves(board_state, turn='B'):
+				new_board_state = self.result(child, board_state, 'B')
+				sub_eval = self.minimax_ab(new_board_state, child, depth - 1, alpha, beta, 
+					maximizingPlayer=False, turn='W')
+
+				maxEval = max(maxEval, sub_eval)
+				alpha = max(alpha, sub_eval)
+				if beta <= alpha:
+					break;
+			return maxEval
+
+		else:
+			minEval = 100000
+			for child in self.get_valid_moves(board_state, turn='W'):
+				new_board_state = self.result(child, board_state, 'W')
+				sub_eval = self.minimax_ab(new_board_state, child, depth - 1, alpha, beta, 
+					maximizingPlayer=True, turn='B')
+
+				minEval = min(minEval, sub_eval)
+				beta = min(sub_eval, beta)
+				if beta <= alpha:
+					break;
 			return minEval
 
 
@@ -180,8 +245,8 @@ class Minimax:
 		best_move_list = []
 		best_val = -100000
 
-		print "possible moves: "
-		print possible_moves
+		# print "possible moves: "
+		# print possible_moves
 
 		for move, val in possible_moves:
 			best_val = max(best_val, val)
@@ -211,14 +276,20 @@ class Minimax:
 
 		move_evals = []
 		move_num = 1
-		print "Num of possible moves: ", len(possible_moves)
+		# print "Num of possible moves: ", len(possible_moves)
+
 		for move in possible_moves:
 			print ("----- MOVE %d -----" % move_num)
 
 			t1 = gettime()
 
-			move_evals.append((move, self.minimax(board_state, move, DEPTH, 
-				alpha=None, beta=None, maximizingPlayer=True, turn='B')))
+			# move_evals.append((move, self.minimax(board_state, move, DEPTH, 
+			# 	alpha=None, beta=None, maximizingPlayer=True, turn='B')))
+
+			e = self.minimax_ab(board_state, move, DEPTH, alpha=-100000, beta=100000, 
+													maximizingPlayer=True, turn=turn)
+			# print "Move: %s evaluation: %d" % (str(move), e)
+			move_evals.append((move, e))
 
 			t2 = gettime()
 			# print "Iteration time: ", (t2 - t1)
@@ -237,41 +308,29 @@ class Minimax:
 		return self.pick_move(move_evals)
 
 
-# ```
-# MINIMAX ALGO:
+	def get_move_2(self, board_size, board_state, turn, time_left=100000, opponent_time_left=100000):
+		DEPTH = 14
+		moves = self.get_valid_moves(board_state, turn)
+		if not moves: return None
 
-# minimax(move, depth, alpha, beta, maximizingPlayer):
-# 	if depth == 0 or game over in position:
-# 		return static evalutation of position
+		move_evals = []
+		for move in moves:
+			new_board_state = self.result(move, board_state, turn)
+			e = self.minimax_ab(new_board_state, move, DEPTH, alpha=-100000, beta=-100000, maximizingPlayer=True, turn=turn)
+			move_evals.append((move, e))
 
-# 	if maximizingPlayer:
-# 		maxEval = -INF
-# 		for each child of position:
-# 			eval = minimax(child, depth - 1, false)
-# 			maxEval = max(maxEval, eval)
-# 		return maxEval
+		best_move_val = (None, -100000)
 
-# 	else:
-# 		minEval = +INF
-# 		for each child of position:
-# 			eval = minimax(child, depth - 1, true)
-# 			minEval = min(minEval, eval)
-# 		return minEval
-# ```
+		print "Possible moves:"
+		printstr = ""
+		for move, val in move_evals:
+			printstr += "\tMove: " + str(move) + ", Value: " + str(val) + '\n' 
+		print printstr
 
-# Functions to consider/will be useful:
-# - result(state, action): resulting state after applying action a to state s
-# - terminal_test(state): tests if game has terminated
-# - utility(state, player): numeric value that determines win, loss, or draw 
-# 							given state and player. 
+		return self.pick_move(move_evals)
 
 
-
-# def get_move(board_size, board_state, turn, time_left, opponent_time_left):
-# 	pass
-
-
-def end_game(board):
+def end_game(board, games_results):
 	n = len(board[0])
 
 	num_b = num_w = 0
@@ -285,78 +344,93 @@ def end_game(board):
 	print "Score: Black: %d, White: %d" % (num_b, num_w)
 	if num_b > num_w:
 		print "Black wins!"
+		games_results['B'] = games_results['B'] + 1
+		
 	if num_w > num_b: 
 		print "White wins!"
+		games_results['W'] = games_results['W'] + 1
+
 	if num_b == num_w:
 		print "It's a draw."
-		
+	return games_results
 
+
+def play_games(board_size):
+	games_results = { 'B': 0, 'W': 0 }
+
+	for i in range(100):
+		###############################################
+		# Set up new board
+		###############################################
+		n = 6
+		board = []
+		for row in range(0, n):
+				board.append([ ' ' for col in range(0, n)])
+		for row in range(n):
+				for col in range(n):
+						if ((row == n / 2 and col == n / 2) or
+								(row == n / 2 - 1 and col == n / 2 - 1)):
+								# bottom right or top left start value
+								board[row][col] = 'W'
+						elif ((row == n / 2 and col == n / 2 - 1) or
+									(row == n / 2 - 1 and col == n / 2)):
+								board[row][col] = 'B'
+		###############################################
+		# Minimax(board_size, board_state, turn, time_left, opponent_time_left)
+		m = Minimax(n, board, 'B')
+		r = RandomOthelloPlayer.RandomOthelloPlayer(n, board, 'W')
+		print "STARTING GAME"
+		# print_board(board)
+
+		turn = 'B'
+		r_num = 0.0
+		while True:
+			print "=========== ROUND # %f =========" % r_num
+			r_num += 0.5
+			r.update_board(board) # since RandomOthelloPlayer maintains board state itself
+
+			# t = raw_input("Continue? (Y/N) ")
+			# if t == 'N' or t == 'n':
+			# 	break
+
+			if turn == 'W':
+				white_move = r.make_random_move(turn)
+
+				if not white_move:
+					turn = 'B'
+					if not m.get_move_2(n, board, turn):
+						print "Game over"
+						end_game(board, games_results)
+						break
+					continue
+				
+				else:
+					board = m.result(white_move, board, 'W')
+					print "WHITE MOVE: ", white_move
+					print_board(board)
+					turn = 'B'
+					continue
+
+			else:
+				black_move = m.get_move_2(n, board, turn)
+
+				if not black_move:
+					turn = 'W'
+					if not r.make_random_move(turn):
+						print "Game over"
+						end_game(board, games_results)
+						break
+					continue
+
+				else:
+					board = m.result(black_move, board, 'B')
+					print "BLACK MOVE: ", black_move
+					print_board(board)
+					turn = 'W'
+					continue
+			
+	print games_results
 
 
 if __name__ == '__main__':
-
-
-	###############################################
-	# Set up new board
-	###############################################
-	n = 6
-	board = []
-	for row in range(0, n):
-			board.append([ ' ' for col in range(0, n)])
-	for row in range(n):
-			for col in range(n):
-					if ((row == n / 2 and col == n / 2) or
-							(row == n / 2 - 1 and col == n / 2 - 1)):
-							# bottom right or top left start value
-							board[row][col] = 'W'
-					elif ((row == n / 2 and col == n / 2 - 1) or
-								(row == n / 2 - 1 and col == n / 2)):
-							board[row][col] = 'B'
-	###############################################
-	# Minimax(board_size, board_state, turn, time_left, opponent_time_left)
-	m = Minimax(n, board, 'B')
-	r = RandomOthelloPlayer.RandomOthelloPlayer(n, board, 'W')
-	print "STARTING GAME"
-	print_board(board)
-
-	turn = 'B'
-	while True:
-		r.update_board(board) # since RandomOthelloPlayer maintains board state itself
-		t = raw_input("Continue? (Y/N) ")
-		if t == 'N' or t == 'n':
-			break
-		if turn == 'W':
-			white_move = r.make_random_move(turn)
-
-			if not white_move:
-				turn = 'B'
-				if not m.get_move(n, board, turn):
-					print "Game over"
-					end_game(board)
-					break
-				continue
-			
-			else:
-				board = m.result(white_move, board, 'W')
-				print "WHITE MOVE: ", white_move
-				print_board(board)
-				turn = 'B'
-				continue
-
-		else:
-			black_move = m.get_move(n, board, turn)
-
-			if not black_move:
-				turn = 'W'
-				if not r.make_random_move(turn):
-					print "Game over"
-					end_game(board)
-					break
-				continue
-
-			else:
-				board = m.result(black_move, board, 'B')
-				print "BLACK MOVE: ", black_move
-				print_board(board)
-				turn = 'W'
-				continue
+	play_games(6)
