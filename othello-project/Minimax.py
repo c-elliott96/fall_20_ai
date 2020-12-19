@@ -292,7 +292,7 @@ class Minimax:
 			move_evals.append((move, e))
 
 			t2 = gettime()
-			# print "Iteration time: ", (t2 - t1)
+			print "Iteration time: ", (t2 - t1)
 
 			move_num += 1
 
@@ -321,11 +321,11 @@ class Minimax:
 
 		best_move_val = (None, -100000)
 
-		print "Possible moves:"
-		printstr = ""
-		for move, val in move_evals:
-			printstr += "\tMove: " + str(move) + ", Value: " + str(val) + '\n' 
-		print printstr
+		# print "Possible moves:"
+		# printstr = ""
+		# for move, val in move_evals:
+		# 	printstr += "\tMove: " + str(move) + ", Value: " + str(val) + '\n' 
+		# print printstr
 
 		return self.pick_move(move_evals)
 
@@ -358,11 +358,11 @@ def end_game(board, games_results):
 def play_games(board_size):
 	games_results = { 'B': 0, 'W': 0 }
 
-	for i in range(100):
+	for i in range(10):
 		###############################################
 		# Set up new board
 		###############################################
-		n = 6
+		n = 8
 		board = []
 		for row in range(0, n):
 				board.append([ ' ' for col in range(0, n)])
@@ -432,5 +432,35 @@ def play_games(board_size):
 	print games_results
 
 
-if __name__ == '__main__':
-	play_games(6)
+def get_move(board_size, board_state, turn, time_left, opponent_time_left):
+	# @board_size = int
+	# @board_state = [row [col]]
+	# @turn = 'W' or 'B'
+	# @time_left = INT of Milliseconds
+	# @opponent_time_left = INT of Milliseconds
+
+	precipice = Minimax(board_size, board_state, turn, time_left, opponent_time_left)
+
+	return precipice.get_move_2(board_size, board_state, turn, time_left, opponent_time_left)
+
+
+# if __name__ == '__main__':
+	
+
+# 	# Test get_move (the one defined ~ 435) 
+# 	turn = 'B'
+	
+# 	# To be removed before submission
+# 	for i in range(30):
+# 		get_move(
+# 			6,
+# 			[[' ', ' ', ' ', ' ', ' ', ' ,'],
+# 			[' ', ' ', ' ', ' ', ' ', ' ,'],
+# 			[' ', ' ', 'W', 'B', ' ', ' ,'],
+# 			[' ', ' ', 'B', 'W', ' ', ' ,'],
+# 			[' ', ' ', ' ', ' ', ' ', ' ,'],
+# 			[' ', ' ', ' ', ' ', ' ', ' ,']],
+# 			'W',
+# 			time_left=150000,
+# 			opponent_time_left=150000
+# 		)
